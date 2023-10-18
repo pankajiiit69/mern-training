@@ -1,8 +1,22 @@
 const express = require('express')
+const multer  = require('multer')
 const UserModel = require('../schema/user')
 const ProfileModel = require('../schema/profile')
 const MatchModel = require('../schema/match')
 const profileRouter = express.Router();
+
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'D:/Codes/mern-training/uploads')
+    },
+    filename: function (req, file, cb) {
+        const uniquePrefix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        const uploadedFileName = uniquePrefix + '-' + file.originalname;
+        cb(null, uploadedFileName)
+        req.uploadedFileName = uploadedFileName;
+    }
+})
+const upload = multer({ storage: storage })
 
 profileRouter.post('/saveprofile', (req, resp) => {
     const profile= req.body;
@@ -62,12 +76,10 @@ profileRouter.get('/getAllProfile',  async (req, resp)=>{
 });
 
 
-
-
 profileRouter.post('/matchRequest', async(req, resp)=>{
-    const requesterUserProfileId = req.query.requesterUserProfileId;
-    console.log('Requester Profile:' + requesterUserProfileId);
-    let requesterProfile = await ProfileModel.findOne({"_id":requesterUserProfileId});
+    
+    console.log(`Email:${req.loggedInUserEmail}`);
+    let requesterProfile = await ProfileModel.findOne({"email":req.loggedInUserEmail});
     
     let matchProfile = await ProfileModel.findOne({"_id":brideMatchId});
     if(matchProfile){
@@ -84,6 +96,15 @@ profileRouter.post('/matchRequest', async(req, resp)=>{
     }else{
         resp.status(400).send({ "staus": "Match Profile Not found" });
     }
+})
+
+profileRouter.post('/uploadFile', upload.single('file'), async(req, resp)=>{
+    console.log('File Uploaded');
+    console.log(`Logged in User Email:${req.loggedInUserEmail}`);
+    let dbProfile = await ProfileModel.findOne({"email":req.loggedInUserEmail});
+    dbProfile.profilePhotoId = req.uploadedFileName;
+    await dbProfile.save();
+    resp.json({"fileStatus" :'File uploaded'});
 })
 
 module.exports = profileRouter;
