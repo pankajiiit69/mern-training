@@ -1,8 +1,10 @@
 const express = require('express')
+require('dotenv').config()
 const mongoose = require('mongoose');
 const {authUserMiddleware} = require('./middlewareA/authUserMiddleware')
 const userRouter = require('./routes/userRoute')
 const profileRouter = require('./routes/profileRoute')
+const PORT = process.env.MATRIMONIAL_APP_PORT || 3000
 //const bodyParser = require('body-parser')
 //const authUserFilter = require('./middleware/authUserMIddleware')
 
@@ -28,6 +30,6 @@ app.get('/test', (req, resp) => {
     resp.status(200).send({"status":"Running"});
 })
 
-app.listen(3000, () => {
-    console.log('Express Server is up and running on port 3000');
+app.listen(PORT, () => {
+    console.log(`Express Server is up and running on port ${PORT}`);
 })
