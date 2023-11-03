@@ -5,6 +5,7 @@ const {authUserMiddleware} = require('./middlewareA/authUserMiddleware')
 const userRouter = require('./routes/userRoute')
 const profileRouter = require('./routes/profileRoute')
 const PORT = process.env.MATRIMONIAL_APP_PORT || 3000
+var cors = require('cors');
 //const bodyParser = require('body-parser')
 //const authUserFilter = require('./middleware/authUserMIddleware')
 
@@ -20,6 +21,7 @@ mongoose.connect("mongodb://localhost:27017/matrimonial", options).
 console.log('Mongo connected');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 app.use('/user', userRouter);
 app.use('/profile', authUserMiddleware , profileRouter);
