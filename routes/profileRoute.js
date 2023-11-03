@@ -21,7 +21,7 @@ const upload = multer({ storage: storage })
 profileRouter.post('/saveprofile', (req, resp) => {
     const profile = req.body;
     console.log(`Email:${profile.email}`);
-    UserModel.findOne({ "email": profile.email })
+    UserModel.findOne({ "_id": req.loggedInUser })
         .then(async data => {
             console.log(data);
             if (data) {
