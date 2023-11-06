@@ -5,6 +5,17 @@ const ProfileModel = require('../schema/profile')
 const MatchModel = require('../schema/match')
 const profileRouter = express.Router();
 
+const { validationResult } = require('express-validator')
+const { createProfileValidator } = require('../validator/ProfileValidator')
+
+const processValidation = (req) => {
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+        console.error(`Validation Error ${JSON.stringify(result)}`);
+        return `Validation Error ${JSON.stringify(result)}!`;
+    }
+}
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, 'D:/Codes/mern-training/uploads')
@@ -18,7 +29,11 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage })
 
-profileRouter.post('/saveprofile', (req, resp) => {
+profileRouter.post('/saveprofile', createProfileValidator, (req, resp) => {
+    const validationError = processValidation(req);
+    if(validationError){
+        return resp.status(401).send(validationError);
+    }
     const profile = req.body;
     console.log(`Email:${profile.email}`);
     UserModel.findOne({ "_id": req.loggedInUser })
@@ -32,14 +47,14 @@ profileRouter.post('/saveprofile', (req, resp) => {
                     console.log('profilesaved');
                     resp.status(200).send({ "staus": "Profile Saved" });
                 } catch (err) {
-                    resp.status(500).send({ staus: "Invalid Profile data", message:err.message });
+                    resp.status(500).send({ staus: "Invalid Profile data", message: err.message });
                 }
             } else {
                 resp.status(400).send({ "staus": "User Account Not found" });
             }
         }).catch(error => {
             console.log(error);
-            resp.status(500).send({ "staus": "Something went wrong while creating profile", "message":error });
+            resp.status(500).send({ "staus": "Something went wrong while creating profile", "message": error });
         });
     //resp.status(500).send({ "staus": "Something went Wrong" });
     //const user = UserModel.find({"email":profile.email});
@@ -72,7 +87,7 @@ profileRouter.post('/updateProfile', async (req, resp) => {
     const reqProfile = req.body;
     try {
         let dbProfile = await ProfileModel.findOne({ "user": req.loggedInUser });
-        Object.keys(reqProfile).forEach(key => dbProfile[key]= reqProfile[key]);
+        Object.keys(reqProfile).forEach(key => dbProfile[key] = reqProfile[key]);
         /* if (reqProfile.fullname) {
             dbProfile.fullname = reqProfile.fullname;
         }
