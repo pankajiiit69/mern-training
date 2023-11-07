@@ -74,7 +74,7 @@ profileRouter.get('/getProfileByEmail', async (req, resp) => {
 })
 
 profileRouter.get('/getMyProfile', async (req, resp) => {
-    const profile = await ProfileModel.findOne({ "user": req.loggedInUser });
+    const profile = await ProfileModel.findOne({ "user": req.loggedInUser }).populate('matchSent matchRcvd');
     if (profile) {
         resp.json(profile);
     } else {
@@ -105,24 +105,55 @@ profileRouter.post('/updateProfile', async (req, resp) => {
 
 })
 
-profileRouter.get('/getAllProfile', async (req, resp) => {
-    console.log('Calling getAllProfile');
-    const allProfile = await ProfileModel.find();
+profileRouter.get('/getAllProfiles', async (req, resp) => {
+    console.log('Calling getAllProfiles');
+    const allProfile = await ProfileModel.find().select('-_id -matches');
     console.log('Finishing getAllProfile');
     resp.json(allProfile);
+});
+
+profileRouter.get('/searchProfiles', async (req, resp) => {
+    console.log('Calling searchProfiles');
+    let loggedInProfile = await ProfileModel.findOne({ "user": req.loggedInUser });
+    const searchProfiles = loggedInProfile?.gender ? await ProfileModel.find({...(req.query), gender:loggedInProfile.gender==='M'?'F':'M'}).select(' -matches') : [];
+    console.log('Finishing searchProfiles');
+    resp.json(searchProfiles);
+});
+
+profileRouter.get('/getMatchProfiles', async (req, resp) => {
+    console.log('Calling getMatchProfiles');
+    const myProfile = await ProfileModel.findOne({ "user": req.loggedInUser }).populate('matchSent matchRcvd');
+    const matchSentProfiles = myProfile?.matchSent ? await ProfileModel.find({_id: {$in : myProfile.matchSent.map(m => m.matchProfile)}}).select('-_id -matches'):[];
+    const matchRcvdProfiles = myProfile?.matchRcvd ? await ProfileModel.find({_id: {$in : myProfile.matchRcvd.map(m => m.matchProfile)}}).select('-_id -matches'):[];
+    console.log('Finishing getMatchProfiles');
+    resp.json({matchSent: matchSentProfiles,matchRcvd:matchRcvdProfiles});
 });
 
 
 profileRouter.post('/matchRequest', async (req, resp) => {
 
-    let matchProfile = await ProfileModel.findOne({ "_id": req.body.brideMatchId });
+    let requesterProfile = await ProfileModel.findOne({ "user": req.loggedInUser });
+    if(requesterProfile.matches && requesterProfile.matchSent.filter(m => m.matchProfile ===req.body.matchProfileId).length>0){
+        resp.status(400).send({ "staus": "Match Already Sent" });
+    }
+    if(requesterProfile.matches && requesterProfile.matcheRcvd.filter(m => m.matchProfile ===req.body.matchProfileId).length>0){
+        resp.status(400).send({ "staus": "Match Already Recieved" });
+    }
+    let matchProfile = await ProfileModel.findOne({ "_id": req.body.matchProfileId });
     if (matchProfile) {
-        const matchJson = req.body;
-        const match = new MatchModel(matchJson);
-        await match.save();
-        let requesterProfile = await ProfileModel.findOne({ "user": req.loggedInUser });
-        requesterProfile.matches.push(match);
+        //const matchJson = {};
+        const match = await MatchModel.create({matchProfile:matchProfile._id, isProfileVerified:req.body.isProfileVerified, status:req.body.status});
+        //await match.save(); 
+        if(!requesterProfile.matchSent) {
+            requesterProfile.matchSent = [];
+        }
+        requesterProfile.matchSent.push(match);
+        if(!matchProfile.matcheRcvd) {
+            matchProfile.matcheRcvd = [];
+        }
+        matchProfile.matcheRcvd.push(match);
         await requesterProfile.save();
+        await matchProfile.save();
         resp.status(200).send({ "staus": "Match Requested" });
     } else {
         resp.status(400).send({ "staus": "Match Profile Not found" });

@@ -11,7 +11,7 @@ const authUserMiddleware = async (req, res, next) => {
         res.status(401).send("Unauthenticated request !!!")
     } else {
         try {
-            const payloadObj = jwt.verify(token, JWT_KEY);
+            const payloadObj = jwt.verify(token.slice(7), JWT_KEY);
             console.log('Token User Info: ' + payloadObj.username);
             const dbUser = await UserModel.findOne({"username":payloadObj.username});
             if(dbUser){

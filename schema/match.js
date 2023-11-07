@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const matchSchema = new mongoose.Schema({
-    brideMatchId: {type: mongoose.Schema.Types.ObjectId, ref:'Profile'},
-    groomMatchId: {type: mongoose.Schema.Types.ObjectId, ref:'Profile'},
-    isVerified :{type: String},
+    matchProfile: {type: mongoose.Schema.Types.ObjectId, ref:'Profile'},
+    //groomMatchId: {type: mongoose.Schema.Types.ObjectId, ref:'Profile'},
+    isProfileVerified :{type: String},
     status:{type: String, required:true}
     // additional feilds
 });
